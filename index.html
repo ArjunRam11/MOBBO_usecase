@@ -928,8 +928,24 @@
     _timestamp: "Submission Timestamp"
   };
 
-  // Form submit — send labeled data to Google Sheets
-  document.getElementById('surveyForm').addEventListener('submit', async function(e) {
+  // Form submit — uses hidden iframe to POST to Google Apps Script (most reliable method)
+  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyO5AanvYXnPrd2lqQKsBlcLnW3PWD4pQA7rh615yw540axfVU75qUkBhTo4I5ETqMa/exec';
+
+  // Create hidden iframe for submission
+  const iframe = document.createElement('iframe');
+  iframe.name = 'hidden_iframe';
+  iframe.style.display = 'none';
+  document.body.appendChild(iframe);
+
+  // Create hidden form that posts to iframe
+  const hiddenForm = document.createElement('form');
+  hiddenForm.method = 'POST';
+  hiddenForm.action = GOOGLE_SCRIPT_URL;
+  hiddenForm.target = 'hidden_iframe';
+  hiddenForm.style.display = 'none';
+  document.body.appendChild(hiddenForm);
+
+  document.getElementById('surveyForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
     const nameVal = document.querySelector('input[name="respondent_name"]').value.trim();
@@ -943,52 +959,46 @@
     btn.textContent = 'Submitting…';
     btn.disabled = true;
 
-    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyO5AanvYXnPrd2lqQKsBlcLnW3PWD4pQA7rh615yw540axfVU75qUkBhTo4I5ETqMa/exec';
-
-    try {
-      const formData = new FormData(this);
-      const raw = {};
-      for (let [key, value] of formData.entries()) {
-        if (raw[key]) {
-          if (Array.isArray(raw[key])) raw[key].push(value);
-          else raw[key] = [raw[key], value];
-        } else {
-          raw[key] = value;
-        }
+    // Collect form data
+    const formData = new FormData(document.getElementById('surveyForm'));
+    const raw = {};
+    for (let [key, value] of formData.entries()) {
+      if (raw[key]) {
+        if (Array.isArray(raw[key])) raw[key].push(value);
+        else raw[key] = [raw[key], value];
+      } else {
+        raw[key] = value;
       }
-      for (let key in raw) {
-        if (Array.isArray(raw[key])) raw[key] = raw[key].join(', ');
-      }
-      raw['_timestamp'] = new Date().toISOString();
+    }
+    for (let key in raw) {
+      if (Array.isArray(raw[key])) raw[key] = raw[key].join(', ');
+    }
+    raw['_timestamp'] = new Date().toISOString();
 
-      // Map raw keys to human-readable headers
-      const labeled = {};
-      for (let key in raw) {
-        const header = FIELD_LABELS[key] || key;
-        labeled[header] = raw[key];
-      }
+    // Map to readable labels
+    const labeled = {};
+    for (let key in raw) {
+      labeled[FIELD_LABELS[key] || key] = raw[key];
+    }
 
-      // Use URLSearchParams instead of JSON — works reliably with no-cors + Apps Script
-      const params = new URLSearchParams();
-      for (let key in labeled) {
-        params.append(key, labeled[key]);
-      }
+    // Clear and populate hidden form
+    hiddenForm.innerHTML = '';
+    for (let key in labeled) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = labeled[key];
+      hiddenForm.appendChild(input);
+    }
 
-      await fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: params
-      });
-
+    // Submit via iframe (bypasses CORS completely)
+    iframe.onload = function() {
       document.getElementById('mainContent').style.display = 'none';
       document.getElementById('thankyou').style.display = 'block';
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
-    } catch (err) {
-      alert('Network error. Please check your connection and try again.');
-      btn.textContent = 'Submit Feedback';
-      btn.disabled = false;
-    }
+    hiddenForm.submit();
   });
 </script>
 </body>
