@@ -968,11 +968,16 @@
         labeled[header] = raw[key];
       }
 
+      // Use URLSearchParams instead of JSON — works reliably with no-cors + Apps Script
+      const params = new URLSearchParams();
+      for (let key in labeled) {
+        params.append(key, labeled[key]);
+      }
+
       await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(labeled)
+        body: params
       });
 
       document.getElementById('mainContent').style.display = 'none';
