@@ -294,6 +294,17 @@
 <div class="container" id="mainContent">
   <form id="surveyForm" novalidate>
 
+    <!-- NAME FIELD -->
+    <div class="section visible" id="s0" style="opacity:1;transform:none;">
+      <div class="section-label">Before You Begin</div>
+      <div class="section-title">Your Name</div>
+      <div class="section-desc">Please enter your full name so we can identify your response.</div>
+      <div class="field">
+        <label class="qlabel">Full Name <span class="req">*</span></label>
+        <input type="text" name="respondent_name" placeholder="Enter your full name…" required>
+      </div>
+    </div>
+
     <!-- SECTION 1: Demographics -->
     <div class="section" id="s1">
       <div class="section-label">Section 1 of 7</div>
@@ -863,41 +874,107 @@
     }
   });
 
-  // Form submit — send to Google Sheets via Apps Script and show thank you
+  // Human-readable header map for Google Sheets columns
+  const FIELD_LABELS = {
+    respondent_name: "Name",
+    role: "Professional Role", role_other: "Role (Other)",
+    experience: "Years of Experience",
+    workplace: "Workplace Setting", workplace_other: "Workplace (Other)",
+    freq: "Frequency of Balance Treatment",
+    methods: "Balance Assessment Methods",
+    tech_specify: "Technologies Used", no_tech_reason: "Reason Not Using Tech",
+    challenges: "Assessment Challenges", challenges_other: "Challenges (Other)",
+    population: "Patient Populations", population_other: "Population (Other)",
+    cfg1: "Rating: Single Board-Static Balance", cfg2: "Rating: Single Board-Dynamic Balance",
+    cfg3: "Rating: Two Boards-Weight Symmetry", cfg4: "Rating: Two Boards-Bilateral Stance",
+    cfg5: "Rating: Lateral-Lateral Walking", cfg6: "Rating: Linear-Gait Assessment",
+    cfg7: "Rating: Staggered-Obstacle Crossing", cfg8: "Rating: Zigzag-Turning Balance",
+    cfg9: "Rating: Variable Spacing-Step Length",
+    cfg_scenarios: "Clinical Scenarios (high-rated configs)",
+    cfg_other_arrangements: "Other Board Arrangements",
+    reconfig_importance: "Importance of Quick Reconfiguration",
+    qm1: "Rating: COP Measurement", qm2: "Rating: BOS Tracking",
+    qm3: "Rating: Body Pose & Joint Angles", qm4: "Rating: Weight Shifting per Board",
+    qm5: "Rating: Local COP Accuracy", qm6: "Rating: Combined COP Accuracy",
+    qm7: "Rating: BOS Accuracy", qm_other: "Other Useful Parameters",
+    gm1: "Rating: Game-Static Balance", gm2: "Rating: Game-Weight Symmetry",
+    gm3: "Rating: Game-Gait Training", gm4: "Rating: Game-Home Care",
+    gm_other: "Other Gaming Applications",
+    us1: "Rating: Ease of Setup", us2: "Rating: Ease of Transport",
+    us3: "Rating: Ease of Setup (Home)", us4: "Rating: Ease of Setup (Small Scale)",
+    us_other: "Other Usability Comments",
+    aa1: "Rating: Initial Balance Assessment", aa2: "Rating: Progress Monitoring",
+    aa3: "Rating: Fall Risk Screening", aa4: "Rating: Post-Surgical Evaluation",
+    aa5: "Rating: Pediatric Balance", aa_other: "Other Assessment Applications",
+    ta1: "Rating: Weight Shifting Exercises", ta2: "Rating: Static Balance Training",
+    ta3: "Rating: Dynamic Balance Training", ta4: "Rating: Gait Training",
+    ta_other: "Other Training Applications",
+    cs1: "Rating: Hospital", cs2: "Rating: Private Clinic",
+    cs3: "Rating: Home-Based Therapy", cs4: "Rating: Community Health Centers",
+    cs5: "Rating: Academic & Research", cs_other: "Other Clinical Settings",
+    features: "Desired Additional Features", features_other: "Features (Other)",
+    board_size: "Ideal Board Size", board_size_other: "Board Size (Other)",
+    num_boards: "Optimal No. of Boards", num_boards_other: "No. of Boards (Other)",
+    display: "Therapist Display Preferences", display_other: "Display (Other)",
+    reporting: "Reporting Features", reporting_other: "Reporting (Other)",
+    safety: "Safety Concerns", safety_other: "Safety (Other)",
+    workflow: "Workflow Improvements", workflow_other: "Workflow (Other)",
+    impl1: "Rating: Likelihood of Using MOBBO",
+    impl2: "Rating: Ease of Understanding System",
+    impl3: "Rating: Confidence to Operate Independently",
+    price: "Acceptable Price Range (INR)",
+    training: "Training Needed", training_other: "Training (Other)",
+    overall_comments: "Overall Comments",
+    _timestamp: "Submission Timestamp"
+  };
+
+  // Form submit — send labeled data to Google Sheets
   document.getElementById('surveyForm').addEventListener('submit', async function(e) {
     e.preventDefault();
+
+    const nameVal = document.querySelector('input[name="respondent_name"]').value.trim();
+    if (!nameVal) {
+      alert('Please enter your full name before submitting.');
+      document.querySelector('input[name="respondent_name"]').focus();
+      return;
+    }
 
     const btn = document.querySelector('.btn-submit');
     btn.textContent = 'Submitting…';
     btn.disabled = true;
 
-    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyO5AanvYXnPrd2lqQKsBlcLnW3PWD4pQA7rh615yw540axfVU75qUkBhTo4I5ETqMa/exec'; // ← Paste your Google Apps Script Web App URL here
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyO5AanvYXnPrd2lqQKsBlcLnW3PWD4pQA7rh615yw540axfVU75qUkBhTo4I5ETqMa/exec';
 
     try {
       const formData = new FormData(this);
-      const data = {};
+      const raw = {};
       for (let [key, value] of formData.entries()) {
-        if (data[key]) {
-          if (Array.isArray(data[key])) data[key].push(value);
-          else data[key] = [data[key], value];
+        if (raw[key]) {
+          if (Array.isArray(raw[key])) raw[key].push(value);
+          else raw[key] = [raw[key], value];
         } else {
-          data[key] = value;
+          raw[key] = value;
         }
       }
-      // Convert arrays to comma-separated strings for clean columns in Sheets
-      for (let key in data) {
-        if (Array.isArray(data[key])) data[key] = data[key].join(', ');
+      for (let key in raw) {
+        if (Array.isArray(raw[key])) raw[key] = raw[key].join(', ');
       }
-      data['_timestamp'] = new Date().toISOString();
+      raw['_timestamp'] = new Date().toISOString();
+
+      // Map raw keys to human-readable headers
+      const labeled = {};
+      for (let key in raw) {
+        const header = FIELD_LABELS[key] || key;
+        labeled[header] = raw[key];
+      }
 
       await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(labeled)
       });
 
-      // no-cors means we can't read the response status, so we assume success
       document.getElementById('mainContent').style.display = 'none';
       document.getElementById('thankyou').style.display = 'block';
       window.scrollTo({ top: 0, behavior: 'smooth' });
