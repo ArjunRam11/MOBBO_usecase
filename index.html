@@ -874,90 +874,103 @@
     }
   });
 
-  // ORDERED list of all fields — defines column order in Google Sheet
-  const FIELD_ORDER = [
-    'respondent_name','role','role_other','experience','workplace','workplace_other','freq',
-    'methods','tech_specify','no_tech_reason',
-    'challenges','challenges_other','population','population_other',
-    'cfg1','cfg2','cfg3','cfg4','cfg5','cfg6','cfg7','cfg8','cfg9',
-    'cfg_scenarios','cfg_other_arrangements','reconfig_importance',
-    'qm1','qm2','qm3','qm4','qm5','qm6','qm7','qm_other',
-    'gm1','gm2','gm3','gm4','gm_other',
-    'us1','us2','us3','us4','us_other',
-    'aa1','aa2','aa3','aa4','aa5','aa_other',
-    'ta1','ta2','ta3','ta4','ta_other',
-    'cs1','cs2','cs3','cs4','cs5','cs_other',
-    'features','features_other','board_size','board_size_other',
-    'num_boards','num_boards_other','display','display_other',
-    'reporting','reporting_other','safety','safety_other',
-    'workflow','workflow_other',
-    'impl1','impl2','impl3','price','training','training_other',
-    'overall_comments','_timestamp'
+  // ── STRICT ORDERED FIELD MAP ──────────────────────────────────────────────
+  // Each entry: [internal_name, "Column Header in Sheet"]
+  // Order here = column order in Google Sheet
+  const ORDERED_FIELDS = [
+    ["respondent_name",       "Name"],
+    ["role",                  "Professional Role"],
+    ["role_other",            "Role (Other)"],
+    ["experience",            "Years of Experience"],
+    ["workplace",             "Workplace Setting"],
+    ["workplace_other",       "Workplace (Other)"],
+    ["freq",                  "Frequency of Balance Treatment"],
+    ["methods",               "Balance Assessment Methods"],
+    ["tech_specify",          "Technologies Used"],
+    ["no_tech_reason",        "Reason Not Using Tech"],
+    ["challenges",            "Assessment Challenges"],
+    ["challenges_other",      "Challenges (Other)"],
+    ["population",            "Patient Populations"],
+    ["population_other",      "Population (Other)"],
+    ["cfg1",                  "Rating: Single Board-Static Balance"],
+    ["cfg2",                  "Rating: Single Board-Dynamic Balance"],
+    ["cfg3",                  "Rating: Two Boards-Weight Symmetry"],
+    ["cfg4",                  "Rating: Two Boards-Bilateral Stance"],
+    ["cfg5",                  "Rating: Lateral-Lateral Walking"],
+    ["cfg6",                  "Rating: Linear-Gait Assessment"],
+    ["cfg7",                  "Rating: Staggered-Obstacle Crossing"],
+    ["cfg8",                  "Rating: Zigzag-Turning Balance"],
+    ["cfg9",                  "Rating: Variable Spacing-Step Length"],
+    ["cfg_scenarios",         "Clinical Scenarios (high-rated)"],
+    ["cfg_other_arrangements","Other Board Arrangements"],
+    ["reconfig_importance",   "Importance of Quick Reconfiguration"],
+    ["qm1",                   "Rating: COP Measurement"],
+    ["qm2",                   "Rating: BOS Tracking"],
+    ["qm3",                   "Rating: Body Pose & Joint Angles"],
+    ["qm4",                   "Rating: Weight Shifting per Board"],
+    ["qm5",                   "Rating: Local COP Accuracy"],
+    ["qm6",                   "Rating: Combined COP Accuracy"],
+    ["qm7",                   "Rating: BOS Accuracy"],
+    ["qm_other",              "Other Useful Parameters"],
+    ["gm1",                   "Rating: Game-Static Balance"],
+    ["gm2",                   "Rating: Game-Weight Symmetry"],
+    ["gm3",                   "Rating: Game-Gait Training"],
+    ["gm4",                   "Rating: Game-Home Care"],
+    ["gm_other",              "Other Gaming Applications"],
+    ["us1",                   "Rating: Ease of Setup"],
+    ["us2",                   "Rating: Ease of Transport"],
+    ["us3",                   "Rating: Ease of Setup (Home)"],
+    ["us4",                   "Rating: Ease of Setup (Small Scale)"],
+    ["us_other",              "Other Usability Comments"],
+    ["aa1",                   "Rating: Initial Balance Assessment"],
+    ["aa2",                   "Rating: Progress Monitoring"],
+    ["aa3",                   "Rating: Fall Risk Screening"],
+    ["aa4",                   "Rating: Post-Surgical Evaluation"],
+    ["aa5",                   "Rating: Pediatric Balance"],
+    ["aa_other",              "Other Assessment Applications"],
+    ["ta1",                   "Rating: Weight Shifting Exercises"],
+    ["ta2",                   "Rating: Static Balance Training"],
+    ["ta3",                   "Rating: Dynamic Balance Training"],
+    ["ta4",                   "Rating: Gait Training"],
+    ["ta_other",              "Other Training Applications"],
+    ["cs1",                   "Rating: Hospital"],
+    ["cs2",                   "Rating: Private Clinic"],
+    ["cs3",                   "Rating: Home-Based Therapy"],
+    ["cs4",                   "Rating: Community Health Centers"],
+    ["cs5",                   "Rating: Academic & Research"],
+    ["cs_other",              "Other Clinical Settings"],
+    ["features",              "Desired Additional Features"],
+    ["features_other",        "Features (Other)"],
+    ["board_size",            "Ideal Board Size"],
+    ["board_size_other",      "Board Size (Other)"],
+    ["num_boards",            "Optimal No. of Boards"],
+    ["num_boards_other",      "No. of Boards (Other)"],
+    ["display",               "Therapist Display Preferences"],
+    ["display_other",         "Display (Other)"],
+    ["reporting",             "Reporting Features"],
+    ["reporting_other",       "Reporting (Other)"],
+    ["safety",                "Safety Concerns"],
+    ["safety_other",          "Safety (Other)"],
+    ["workflow",              "Workflow Improvements"],
+    ["workflow_other",        "Workflow (Other)"],
+    ["impl1",                 "Rating: Likelihood of Using MOBBO"],
+    ["impl2",                 "Rating: Ease of Understanding System"],
+    ["impl3",                 "Rating: Confidence to Operate Independently"],
+    ["price",                 "Acceptable Price Range (INR)"],
+    ["training",              "Training Needed"],
+    ["training_other",        "Training (Other)"],
+    ["overall_comments",      "Overall Comments"],
+    ["_timestamp",            "Submission Timestamp"]
   ];
-
-  // Human-readable labels matching the order above
-  const FIELD_LABELS = {
-    respondent_name: "Name",
-    role: "Professional Role", role_other: "Role (Other)",
-    experience: "Years of Experience",
-    workplace: "Workplace Setting", workplace_other: "Workplace (Other)",
-    freq: "Frequency of Balance Treatment",
-    methods: "Balance Assessment Methods",
-    tech_specify: "Technologies Used", no_tech_reason: "Reason Not Using Tech",
-    challenges: "Assessment Challenges", challenges_other: "Challenges (Other)",
-    population: "Patient Populations", population_other: "Population (Other)",
-    cfg1: "Rating: Single Board-Static Balance", cfg2: "Rating: Single Board-Dynamic Balance",
-    cfg3: "Rating: Two Boards-Weight Symmetry", cfg4: "Rating: Two Boards-Bilateral Stance",
-    cfg5: "Rating: Lateral-Lateral Walking", cfg6: "Rating: Linear-Gait Assessment",
-    cfg7: "Rating: Staggered-Obstacle Crossing", cfg8: "Rating: Zigzag-Turning Balance",
-    cfg9: "Rating: Variable Spacing-Step Length",
-    cfg_scenarios: "Clinical Scenarios (high-rated)",
-    cfg_other_arrangements: "Other Board Arrangements",
-    reconfig_importance: "Importance of Quick Reconfiguration",
-    qm1: "Rating: COP Measurement", qm2: "Rating: BOS Tracking",
-    qm3: "Rating: Body Pose & Joint Angles", qm4: "Rating: Weight Shifting per Board",
-    qm5: "Rating: Local COP Accuracy", qm6: "Rating: Combined COP Accuracy",
-    qm7: "Rating: BOS Accuracy", qm_other: "Other Useful Parameters",
-    gm1: "Rating: Game-Static Balance", gm2: "Rating: Game-Weight Symmetry",
-    gm3: "Rating: Game-Gait Training", gm4: "Rating: Game-Home Care",
-    gm_other: "Other Gaming Applications",
-    us1: "Rating: Ease of Setup", us2: "Rating: Ease of Transport",
-    us3: "Rating: Ease of Setup (Home)", us4: "Rating: Ease of Setup (Small Scale)",
-    us_other: "Other Usability Comments",
-    aa1: "Rating: Initial Balance Assessment", aa2: "Rating: Progress Monitoring",
-    aa3: "Rating: Fall Risk Screening", aa4: "Rating: Post-Surgical Evaluation",
-    aa5: "Rating: Pediatric Balance", aa_other: "Other Assessment Applications",
-    ta1: "Rating: Weight Shifting Exercises", ta2: "Rating: Static Balance Training",
-    ta3: "Rating: Dynamic Balance Training", ta4: "Rating: Gait Training",
-    ta_other: "Other Training Applications",
-    cs1: "Rating: Hospital", cs2: "Rating: Private Clinic",
-    cs3: "Rating: Home-Based Therapy", cs4: "Rating: Community Health Centers",
-    cs5: "Rating: Academic & Research", cs_other: "Other Clinical Settings",
-    features: "Desired Additional Features", features_other: "Features (Other)",
-    board_size: "Ideal Board Size", board_size_other: "Board Size (Other)",
-    num_boards: "Optimal No. of Boards", num_boards_other: "No. of Boards (Other)",
-    display: "Therapist Display Preferences", display_other: "Display (Other)",
-    reporting: "Reporting Features", reporting_other: "Reporting (Other)",
-    safety: "Safety Concerns", safety_other: "Safety (Other)",
-    workflow: "Workflow Improvements", workflow_other: "Workflow (Other)",
-    impl1: "Rating: Likelihood of Using MOBBO",
-    impl2: "Rating: Ease of Understanding System",
-    impl3: "Rating: Confidence to Operate Independently",
-    price: "Acceptable Price Range (INR)",
-    training: "Training Needed", training_other: "Training (Other)",
-    overall_comments: "Overall Comments",
-    _timestamp: "Submission Timestamp"
-  };
 
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyO5AanvYXnPrd2lqQKsBlcLnW3PWD4pQA7rh615yw540axfVU75qUkBhTo4I5ETqMa/exec';
 
-  // Hidden iframe
+  // Hidden iframe & form for CORS-free submission
   const iframe = document.createElement('iframe');
   iframe.name = 'hidden_iframe';
   iframe.style.display = 'none';
   document.body.appendChild(iframe);
 
-  // Hidden form
   const hiddenForm = document.createElement('form');
   hiddenForm.method = 'POST';
   hiddenForm.action = GOOGLE_SCRIPT_URL;
@@ -979,47 +992,38 @@
     btn.textContent = 'Submitting…';
     btn.disabled = true;
 
-    // Collect ALL form values manually — including unchecked (empty) fields
+    // Step 1: collect all raw values keyed by internal name
     const raw = {};
 
-    // Initialize all fields as empty first
-    FIELD_ORDER.forEach(key => { raw[key] = ''; });
-
-    // Get all checked radios
-    document.querySelectorAll('#surveyForm input[type="radio"]:checked').forEach(input => {
-      raw[input.name] = input.value;
+    // Text inputs & textareas
+    document.querySelectorAll('#surveyForm input[type="text"], #surveyForm textarea').forEach(el => {
+      raw[el.name] = el.value.trim();
     });
 
-    // Get all text inputs and textareas
-    document.querySelectorAll('#surveyForm input[type="text"], #surveyForm textarea').forEach(input => {
-      raw[input.name] = input.value.trim();
+    // Radio buttons (Likert scales & single-select)
+    document.querySelectorAll('#surveyForm input[type="radio"]:checked').forEach(el => {
+      raw[el.name] = el.value;
     });
 
-    // Get all checkboxes — combine multiple values with comma
-    const checkboxGroups = {};
-    document.querySelectorAll('#surveyForm input[type="checkbox"]:checked').forEach(input => {
-      if (!checkboxGroups[input.name]) checkboxGroups[input.name] = [];
-      checkboxGroups[input.name].push(input.value);
+    // Checkboxes — group multiple selections into comma-separated string
+    document.querySelectorAll('#surveyForm input[type="checkbox"]:checked').forEach(el => {
+      raw[el.name] = raw[el.name] ? raw[el.name] + ', ' + el.value : el.value;
     });
-    for (let key in checkboxGroups) {
-      raw[key] = checkboxGroups[key].join(', ');
-    }
 
-    // Add timestamp
+    // Timestamp
     raw['_timestamp'] = new Date().toISOString();
 
-    // Build hidden form inputs IN ORDER using readable labels
+    // Step 2: build hidden form inputs in STRICT ORDER using readable column headers
     hiddenForm.innerHTML = '';
-    FIELD_ORDER.forEach(key => {
-      const label = FIELD_LABELS[key] || key;
+    ORDERED_FIELDS.forEach(([fieldName, colHeader]) => {
       const input = document.createElement('input');
       input.type = 'hidden';
-      input.name = label;
-      input.value = raw[key] || '';
+      input.name = colHeader;          // column header sent to sheet
+      input.value = raw[fieldName] || ''; // value or empty string
       hiddenForm.appendChild(input);
     });
 
-    // Submit
+    // Step 3: submit via iframe
     iframe.onload = function() {
       document.getElementById('mainContent').style.display = 'none';
       document.getElementById('thankyou').style.display = 'block';
