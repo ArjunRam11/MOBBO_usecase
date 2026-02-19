@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MOBBO Survey Dashboard — CMC Vellore</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0b0f1a;
+  --surface: #111827;
+  --surface2: #1a2235;
+  --border: #1e2d45;
+  --primary: #4f8ef7;
+  --accent: #f5a623;
+  --accent2: #4ecdc4;
+  --accent3: #e84393;
+  --text: #e8edf5;
+  --muted: #6b7a99;
+  --success: #4ade80;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+
+/* HEADER */
+header{
+  background: linear-gradient(135deg, #0d1b2e 0%, #0b1120 100%);
+  border-bottom:1px solid var(--border);
+  padding:28px 40px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.logo{display:flex;align-items:center;gap:14px;}
+.logo-icon{
+  width:40px;height:40px;border-radius:10px;
+  background:linear-gradient(135deg,var(--primary),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;font-weight:800;font-family:'Syne',sans-serif;color:#fff;
+}
+.logo-text h1{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--text);}
+.logo-text p{font-size:11px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;}
+.header-right{display:flex;align-items:center;gap:16px;}
+#responseCount{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:20px;padding:6px 16px;font-size:13px;color:var(--accent2);
+}
+
+/* UPLOAD ZONE */
+#uploadZone{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:calc(100vh - 80px);padding:40px;text-align:center;
+}
+.upload-card{
+  background:var(--surface);border:2px dashed var(--border);border-radius:24px;
+  padding:60px 80px;max-width:520px;cursor:pointer;transition:all 0.2s;
+}
+.upload-card:hover{border-color:var(--primary);background:var(--surface2);}
+.upload-icon{font-size:56px;margin-bottom:20px;}
+.upload-card h2{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;margin-bottom:10px;}
+.upload-card p{color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:24px;}
+.upload-btn{
+  background:var(--primary);color:#fff;border:none;
+  padding:12px 32px;border-radius:50px;font-size:14px;font-weight:500;
+  font-family:inherit;cursor:pointer;transition:all 0.2s;
+}
+.upload-btn:hover{background:#6aa0ff;transform:translateY(-1px);}
+#fileInput{display:none;}
+
+/* DASHBOARD */
+#dashboard{display:none;padding:32px 40px;}
+
+/* KPI CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;}
+.kpi-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:24px;position:relative;overflow:hidden;
+}
+.kpi-card::before{
+  content:'';position:absolute;top:0;right:0;width:80px;height:80px;
+  border-radius:0 0 0 80px;opacity:0.1;
+}
+.kpi-card:nth-child(1)::before{background:var(--primary);}
+.kpi-card:nth-child(2)::before{background:var(--accent);}
+.kpi-card:nth-child(3)::before{background:var(--accent2);}
+.kpi-card:nth-child(4)::before{background:var(--accent3);}
+.kpi-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;}
+.kpi-value{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;line-height:1;}
+.kpi-card:nth-child(1) .kpi-value{color:var(--primary);}
+.kpi-card:nth-child(2) .kpi-value{color:var(--accent);}
+.kpi-card:nth-child(3) .kpi-value{color:var(--accent2);}
+.kpi-card:nth-child(4) .kpi-value{color:var(--accent3);}
+.kpi-sub{font-size:12px;color:var(--muted);margin-top:6px;}
+
+/* SECTION HEADERS */
+.section-header{
+  display:flex;align-items:center;gap:12px;margin-bottom:20px;margin-top:8px;
+}
+.section-header h2{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;}
+.section-pill{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:20px;padding:4px 12px;font-size:11px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:0.08em;
+}
+
+/* CHART GRIDS */
+.chart-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;}
+.chart-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:20px;}
+.chart-grid-full{margin-bottom:20px;}
+
+.chart-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:24px;
+}
+.chart-card h3{
+  font-family:'Syne',sans-serif;font-size:14px;font-weight:600;
+  color:var(--text);margin-bottom:4px;
+}
+.chart-card .chart-subtitle{font-size:12px;color:var(--muted);margin-bottom:20px;}
+.chart-wrap{position:relative;}
+
+/* RATING HEATMAP */
+.heatmap{width:100%;border-collapse:collapse;}
+.heatmap th{
+  font-size:11px;color:var(--muted);font-weight:500;
+  padding:6px 10px;text-align:left;
+}
+.heatmap th:not(:first-child){text-align:center;}
+.heatmap td{padding:7px 10px;font-size:13px;}
+.heatmap td:first-child{color:var(--text);font-size:12px;max-width:280px;}
+.heatmap td:not(:first-child){text-align:center;}
+.heat-cell{
+  display:inline-block;width:44px;height:28px;border-radius:6px;
+  line-height:28px;font-size:13px;font-weight:600;font-family:'Syne',sans-serif;
+}
+.heatmap tr:hover td{background:rgba(255,255,255,0.02);}
+
+/* MULTI SELECT BARS */
+.bar-list{display:flex;flex-direction:column;gap:10px;}
+.bar-item{}
+.bar-label{display:flex;justify-content:space-between;margin-bottom:4px;}
+.bar-label span:first-child{font-size:12px;color:var(--text);}
+.bar-label span:last-child{font-size:12px;color:var(--muted);}
+.bar-track{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width 1s ease;}
+
+/* DIVIDER */
+.divider{border:none;border-top:1px solid var(--border);margin:32px 0;}
+
+/* NO DATA */
+.no-data{text-align:center;padding:40px;color:var(--muted);font-size:13px;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+@media(max-width:900px){
+  .kpi-grid{grid-template-columns:1fr 1fr;}
+  .chart-grid-2,.chart-grid-3{grid-template-columns:1fr;}
+  header{padding:16px 20px;}
+  #dashboard{padding:20px 16px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">M</div>
+    <div class="logo-text">
+      <h1>MOBBO Dashboard</h1>
+      <p>Survey Analytics · CMC Vellore</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div id="responseCount" style="display:none">0 Responses</div>
+    <label for="fileInput" style="cursor:pointer;">
+      <div class="upload-btn" style="font-size:12px;padding:8px 20px;">↑ Load CSV</div>
+    </label>
+    <input type="file" id="fileInput" accept=".csv"/>
+  </div>
+</header>
+
+<!-- UPLOAD ZONE -->
+<div id="uploadZone">
+  <div class="upload-card" onclick="document.getElementById('fileInput').click()">
+    <div class="upload-icon">📊</div>
+    <h2>Upload Survey CSV</h2>
+    <p>Export your Google Sheet as CSV (File → Download → CSV) and drop it here to instantly visualize all survey responses.</p>
+    <button class="upload-btn">Choose CSV File</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+
+  <!-- KPI ROW -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Responses</div>
+      <div class="kpi-value" id="kpi-total">0</div>
+      <div class="kpi-sub">Survey submissions</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Avg Adoption Score</div>
+      <div class="kpi-value" id="kpi-adoption">—</div>
+      <div class="kpi-sub">Likelihood of using MOBBO /5</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Top Role</div>
+      <div class="kpi-value" style="font-size:18px;padding-top:8px;" id="kpi-role">—</div>
+      <div class="kpi-sub">Most common profession</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Top Setting</div>
+      <div class="kpi-value" style="font-size:18px;padding-top:8px;" id="kpi-setting">—</div>
+      <div class="kpi-sub">Most common workplace</div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: DEMOGRAPHICS -->
+  <div class="section-header">
+    <h2>Demographics</h2>
+    <span class="section-pill">Section 1</span>
+  </div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <h3>Professional Role</h3>
+      <div class="chart-subtitle">Distribution of respondents by role</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="chartRole"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Years of Experience</h3>
+      <div class="chart-subtitle">Clinical experience breakdown</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="chartExp"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <h3>Workplace Setting</h3>
+      <div class="chart-subtitle">Where respondents practice</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="chartWorkplace"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Frequency of Balance Treatment</h3>
+      <div class="chart-subtitle">How often respondents treat balance conditions</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="chartFreq"></canvas></div>
+    </div>
+  </div>
+
+  <hr class="divider"/>
+
+  <!-- SECTION 2: CURRENT PRACTICE -->
+  <div class="section-header">
+    <h2>Current Practice</h2>
+    <span class="section-pill">Section 2</span>
+  </div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <h3>Assessment Challenges</h3>
+      <div class="chart-subtitle">Most common challenges cited (multi-select)</div>
+      <div class="bar-list" id="barChallenges"></div>
+    </div>
+    <div class="chart-card">
+      <h3>Patient Populations Treated</h3>
+      <div class="chart-subtitle">Most common patient groups (multi-select)</div>
+      <div class="bar-list" id="barPopulation"></div>
+    </div>
+  </div>
+
+  <hr class="divider"/>
+
+  <!-- SECTION 3: FEATURE RATINGS HEATMAP -->
+  <div class="section-header">
+    <h2>Feature Ratings Heatmap</h2>
+    <span class="section-pill">Section 3 — Likert 1–5</span>
+  </div>
+  <div class="chart-card chart-grid-full">
+    <h3>All Feature Ratings — Average Score per Item</h3>
+    <div class="chart-subtitle">Color intensity shows clinical utility (darker = lower, brighter = higher rating)</div>
+    <div style="overflow-x:auto;margin-top:8px;">
+      <table class="heatmap" id="heatmapTable">
+        <thead><tr>
+          <th style="min-width:260px">Feature / Question</th>
+          <th>Avg</th><th>1★</th><th>2★</th><th>3★</th><th>4★</th><th>5★</th>
+        </tr></thead>
+        <tbody id="heatmapBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="chart-grid-2" style="margin-top:20px;">
+    <div class="chart-card">
+      <h3>Board Configuration Ratings</h3>
+      <div class="chart-subtitle">Average rating per configuration (cfg1–cfg9)</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="chartCfg"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Feature Group Comparison</h3>
+      <div class="chart-subtitle">Average score across the 4 feature groups</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="chartFeatureGroups"></canvas></div>
+    </div>
+  </div>
+
+  <hr class="divider"/>
+
+  <!-- SECTION 4: USE CASES -->
+  <div class="section-header">
+    <h2>Potential Use Cases</h2>
+    <span class="section-pill">Section 4</span>
+  </div>
+  <div class="chart-grid-3">
+    <div class="chart-card">
+      <h3>Assessment Applications</h3>
+      <div class="chart-subtitle">Average ratings (aa1–aa5)</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="chartAA"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Training Applications</h3>
+      <div class="chart-subtitle">Average ratings (ta1–ta4)</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="chartTA"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Clinical Settings</h3>
+      <div class="chart-subtitle">Average ratings (cs1–cs5)</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="chartCS"></canvas></div>
+    </div>
+  </div>
+
+  <hr class="divider"/>
+
+  <!-- SECTION 5: DESIGN PREFERENCES -->
+  <div class="section-header">
+    <h2>Design & Workflow Preferences</h2>
+    <span class="section-pill">Section 5</span>
+  </div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <h3>Desired Additional Features</h3>
+      <div class="chart-subtitle">Most requested new features (multi-select)</div>
+      <div class="bar-list" id="barFeatures"></div>
+    </div>
+    <div class="chart-card">
+      <h3>Safety Concerns</h3>
+      <div class="chart-subtitle">Most cited safety issues (multi-select)</div>
+      <div class="bar-list" id="barSafety"></div>
+    </div>
+  </div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <h3>Therapist Display Preferences</h3>
+      <div class="chart-subtitle">What therapists want to see during sessions</div>
+      <div class="bar-list" id="barDisplay"></div>
+    </div>
+    <div class="chart-card">
+      <h3>Workflow Improvements Needed</h3>
+      <div class="chart-subtitle">Most desired workflow enhancements</div>
+      <div class="bar-list" id="barWorkflow"></div>
+    </div>
+  </div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <h3>Ideal Board Size</h3>
+      <div class="chart-subtitle">Preferred board dimensions</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="chartBoardSize"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Optimal Number of Boards</h3>
+      <div class="chart-subtitle">How many boards respondents prefer</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="chartNumBoards"></canvas></div>
+    </div>
+  </div>
+
+  <hr class="divider"/>
+
+  <!-- SECTION 6: IMPLEMENTATION -->
+  <div class="section-header">
+    <h2>Implementation Considerations</h2>
+    <span class="section-pill">Section 6</span>
+  </div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <h3>Acceptable Price Range</h3>
+      <div class="chart-subtitle">What respondents are willing to pay (INR)</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="chartPrice"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Training Preferences</h3>
+      <div class="chart-subtitle">Training formats needed (multi-select)</div>
+      <div class="bar-list" id="barTraining"></div>
+    </div>
+  </div>
+  <div class="chart-grid-3">
+    <div class="chart-card">
+      <h3>Likelihood of Adoption</h3>
+      <div class="chart-subtitle">Rating distribution (impl1)</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="chartImpl1"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Ease of Understanding</h3>
+      <div class="chart-subtitle">After demonstration (impl2)</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="chartImpl2"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Confidence to Operate</h3>
+      <div class="chart-subtitle">Independent operation (impl3)</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="chartImpl3"></canvas></div>
+    </div>
+  </div>
+
+</div><!-- end dashboard -->
+
+<script>
+// ── COLOUR PALETTE ───────────────────────────────────────────────
+const COLORS = ['#4f8ef7','#f5a623','#4ecdc4','#e84393','#a78bfa','#34d399','#fb923c','#60a5fa','#f472b6','#a3e635'];
+const GRID_COLOR = 'rgba(255,255,255,0.05)';
+const TEXT_COLOR = '#6b7a99';
+
+Chart.defaults.color = TEXT_COLOR;
+Chart.defaults.borderColor = GRID_COLOR;
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+
+// ── ORDERED FIELD MAP (must match survey) ────────────────────────
+const HEADERS = [
+  "Name","Professional Role","Role (Other)","Years of Experience",
+  "Workplace Setting","Workplace (Other)","Frequency of Balance Treatment",
+  "Balance Assessment Methods","Technologies Used","Reason Not Using Tech",
+  "Assessment Challenges","Challenges (Other)","Patient Populations","Population (Other)",
+  "Rating: Single Board-Static Balance","Rating: Single Board-Dynamic Balance",
+  "Rating: Two Boards-Weight Symmetry","Rating: Two Boards-Bilateral Stance",
+  "Rating: Lateral-Lateral Walking","Rating: Linear-Gait Assessment",
+  "Rating: Staggered-Obstacle Crossing","Rating: Zigzag-Turning Balance",
+  "Rating: Variable Spacing-Step Length","Clinical Scenarios (high-rated)",
+  "Other Board Arrangements","Importance of Quick Reconfiguration",
+  "Rating: COP Measurement","Rating: BOS Tracking","Rating: Body Pose & Joint Angles",
+  "Rating: Weight Shifting per Board","Rating: Local COP Accuracy",
+  "Rating: Combined COP Accuracy","Rating: BOS Accuracy","Other Useful Parameters",
+  "Rating: Game-Static Balance","Rating: Game-Weight Symmetry",
+  "Rating: Game-Gait Training","Rating: Game-Home Care","Other Gaming Applications",
+  "Rating: Ease of Setup","Rating: Ease of Transport","Rating: Ease of Setup (Home)",
+  "Rating: Ease of Setup (Small Scale)","Other Usability Comments",
+  "Rating: Initial Balance Assessment","Rating: Progress Monitoring",
+  "Rating: Fall Risk Screening","Rating: Post-Surgical Evaluation",
+  "Rating: Pediatric Balance","Other Assessment Applications",
+  "Rating: Weight Shifting Exercises","Rating: Static Balance Training",
+  "Rating: Dynamic Balance Training","Rating: Gait Training","Other Training Applications",
+  "Rating: Hospital","Rating: Private Clinic","Rating: Home-Based Therapy",
+  "Rating: Community Health Centers","Rating: Academic & Research","Other Clinical Settings",
+  "Desired Additional Features","Features (Other)","Ideal Board Size","Board Size (Other)",
+  "Optimal No. of Boards","No. of Boards (Other)","Therapist Display Preferences",
+  "Display (Other)","Reporting Features","Reporting (Other)","Safety Concerns",
+  "Safety (Other)","Workflow Improvements","Workflow (Other)",
+  "Rating: Likelihood of Using MOBBO","Rating: Ease of Understanding System",
+  "Rating: Confidence to Operate Independently","Acceptable Price Range (INR)",
+  "Training Needed","Training (Other)","Overall Comments","Submission Timestamp"
+];
+
+// ── HELPERS ──────────────────────────────────────────────────────
+function freq(arr) {
+  const m = {};
+  arr.forEach(v => { if(v && v.trim()) m[v.trim()] = (m[v.trim()]||0)+1; });
+  return m;
+}
+function multiFreq(arr) {
+  const m = {};
+  arr.forEach(cell => {
+    if(!cell) return;
+    cell.split(',').forEach(v => {
+      v = v.trim();
+      if(v) m[v] = (m[v]||0)+1;
+    });
+  });
+  return m;
+}
+function col(rows, header) {
+  return rows.map(r => r[header] || '');
+}
+function avgRating(rows, header) {
+  const vals = col(rows, header).map(Number).filter(n => n >= 1 && n <= 5);
+  if(!vals.length) return null;
+  return (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2);
+}
+function ratingDist(rows, header) {
+  const dist = {1:0,2:0,3:0,4:0,5:0};
+  col(rows, header).forEach(v => { const n=Number(v); if(n>=1&&n<=5) dist[n]++; });
+  return dist;
+}
+function topKey(obj) {
+  return Object.entries(obj).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
+}
+function heatColor(avg) {
+  if(!avg) return 'rgba(255,255,255,0.05)';
+  const n = parseFloat(avg);
+  if(n >= 4.5) return 'rgba(78,205,196,0.85)';
+  if(n >= 4.0) return 'rgba(78,205,196,0.6)';
+  if(n >= 3.5) return 'rgba(79,142,247,0.6)';
+  if(n >= 3.0) return 'rgba(79,142,247,0.35)';
+  if(n >= 2.0) return 'rgba(245,166,35,0.35)';
+  return 'rgba(232,67,147,0.35)';
+}
+
+// ── CHART FACTORY ────────────────────────────────────────────────
+let charts = {};
+function makeChart(id, type, labels, data, options={}) {
+  if(charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id)?.getContext('2d');
+  if(!ctx) return;
+  const colors = options.colors || COLORS;
+  charts[id] = new Chart(ctx, {
+    type,
+    data: {
+      labels,
+      datasets:[{
+        data,
+        backgroundColor: type==='line' ? 'transparent' : colors.slice(0,data.length),
+        borderColor: type==='line' ? colors[0] : colors.slice(0,data.length),
+        borderWidth: type==='bar' ? 0 : 2,
+        borderRadius: type==='bar' ? 6 : 0,
+        tension: 0.4,
+        pointBackgroundColor: colors[0],
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ display: type==='doughnut'||type==='pie', position:'right',
+          labels:{boxWidth:10,padding:12,font:{size:11},color:'#6b7a99'}},
+        tooltip:{
+          backgroundColor:'#1a2235',borderColor:'#1e2d45',borderWidth:1,
+          titleColor:'#e8edf5',bodyColor:'#6b7a99',padding:10,
+          callbacks:{ label: ctx => ` ${ctx.parsed.y ?? ctx.parsed ?? ctx.raw}${options.pct?' ('+Math.round(ctx.parsed/(options.total||1)*100)+'%)':''}` }
+        }
+      },
+      scales: (type==='bar'||type==='line') ? {
+        x:{ grid:{color:GRID_COLOR}, ticks:{font:{size:11},maxRotation:30} },
+        y:{ grid:{color:GRID_COLOR}, ticks:{font:{size:11}},
+            min: options.yMin??undefined, max: options.yMax??undefined,
+            beginAtZero:true }
+      } : {},
+      ...options.extra
+    }
+  });
+}
+
+function makeBarList(containerId, freqMap, total, color) {
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  const sorted = Object.entries(freqMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  if(!sorted.length){ el.innerHTML='<div class="no-data">No data yet</div>'; return; }
+  el.innerHTML = sorted.map(([label,count],i) => `
+    <div class="bar-item">
+      <div class="bar-label">
+        <span>${label}</span>
+        <span>${count} (${Math.round(count/total*100)}%)</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${Math.round(count/sorted[0][1]*100)}%;background:${COLORS[i%COLORS.length]}"></div>
+      </div>
+    </div>`).join('');
+}
+
+// ── HEATMAP ──────────────────────────────────────────────────────
+const RATING_FIELDS = [
+  ["Rating: Single Board-Static Balance","Single Board — Static Balance"],
+  ["Rating: Single Board-Dynamic Balance","Single Board — Dynamic Balance"],
+  ["Rating: Two Boards-Weight Symmetry","Two Boards — Weight Symmetry"],
+  ["Rating: Two Boards-Bilateral Stance","Two Boards — Bilateral Stance"],
+  ["Rating: Lateral-Lateral Walking","Lateral Arrangement — Lateral Walking"],
+  ["Rating: Linear-Gait Assessment","Linear Arrangement — Gait Assessment"],
+  ["Rating: Staggered-Obstacle Crossing","Staggered — Obstacle Crossing"],
+  ["Rating: Zigzag-Turning Balance","Zigzag — Turning Balance"],
+  ["Rating: Variable Spacing-Step Length","Variable Spacing — Step Length"],
+  ["Rating: COP Measurement","COP Measurement"],
+  ["Rating: BOS Tracking","BOS Tracking"],
+  ["Rating: Body Pose & Joint Angles","Body Pose & Joint Angles"],
+  ["Rating: Weight Shifting per Board","Weight Shifting per Board"],
+  ["Rating: Local COP Accuracy","Local COP Accuracy"],
+  ["Rating: Combined COP Accuracy","Combined COP Accuracy"],
+  ["Rating: BOS Accuracy","BOS Accuracy"],
+  ["Rating: Game-Static Balance","Game — Static Balance"],
+  ["Rating: Game-Weight Symmetry","Game — Weight Symmetry"],
+  ["Rating: Game-Gait Training","Game — Gait Training"],
+  ["Rating: Game-Home Care","Game — Home Care"],
+  ["Rating: Ease of Setup","Ease of Setup"],
+  ["Rating: Ease of Transport","Ease of Transport"],
+  ["Rating: Ease of Setup (Home)","Ease of Setup (Home)"],
+  ["Rating: Ease of Setup (Small Scale)","Ease of Setup (Small Scale)"],
+  ["Rating: Initial Balance Assessment","Initial Balance Assessment"],
+  ["Rating: Progress Monitoring","Progress Monitoring"],
+  ["Rating: Fall Risk Screening","Fall Risk Screening"],
+  ["Rating: Post-Surgical Evaluation","Post-Surgical Evaluation"],
+  ["Rating: Pediatric Balance","Pediatric Balance"],
+  ["Rating: Weight Shifting Exercises","Weight Shifting Exercises"],
+  ["Rating: Static Balance Training","Static Balance Training"],
+  ["Rating: Dynamic Balance Training","Dynamic Balance Training"],
+  ["Rating: Gait Training","Gait Training"],
+  ["Rating: Hospital","Clinical Setting — Hospital"],
+  ["Rating: Private Clinic","Clinical Setting — Private Clinic"],
+  ["Rating: Home-Based Therapy","Clinical Setting — Home-Based Therapy"],
+  ["Rating: Community Health Centers","Clinical Setting — Community Health"],
+  ["Rating: Academic & Research","Clinical Setting — Academic & Research"],
+  ["Rating: Likelihood of Using MOBBO","Likelihood of Using MOBBO"],
+  ["Rating: Ease of Understanding System","Ease of Understanding System"],
+  ["Rating: Confidence to Operate Independently","Confidence to Operate Independently"],
+];
+
+function buildHeatmap(rows) {
+  const tbody = document.getElementById('heatmapBody');
+  if(!tbody) return;
+  tbody.innerHTML = RATING_FIELDS.map(([header, label]) => {
+    const dist = ratingDist(rows, header);
+    const total = Object.values(dist).reduce((a,b)=>a+b,0);
+    const avg = total ? (Object.entries(dist).reduce((s,[k,v])=>s+Number(k)*v,0)/total).toFixed(2) : null;
+    const bg = heatColor(avg);
+    const distCells = [1,2,3,4,5].map(s => {
+      const pct = total ? Math.round(dist[s]/total*100) : 0;
+      return `<td><span style="color:${pct>30?'#e8edf5':'#6b7a99'};font-size:11px">${pct?pct+'%':'-'}</span></td>`;
+    }).join('');
+    return `<tr>
+      <td>${label}</td>
+      <td><span class="heat-cell" style="background:${bg};color:${avg&&parseFloat(avg)>=3?'#0b0f1a':'#e8edf5'}">${avg??'—'}</span></td>
+      ${distCells}
+    </tr>`;
+  }).join('');
+}
+
+// ── MAIN RENDER ──────────────────────────────────────────────────
+function renderDashboard(rows) {
+  const n = rows.length;
+  if(!n){ alert('No valid data rows found. Make sure row 1 has headers.'); return; }
+
+  // KPIs
+  document.getElementById('kpi-total').textContent = n;
+  document.getElementById('responseCount').textContent = n + ' Response' + (n>1?'s':'');
+  document.getElementById('responseCount').style.display = 'block';
+  const adoptionAvg = avgRating(rows, 'Rating: Likelihood of Using MOBBO');
+  document.getElementById('kpi-adoption').textContent = adoptionAvg ?? '—';
+  const roles = freq(col(rows,'Professional Role'));
+  document.getElementById('kpi-role').textContent = topKey(roles);
+  const settings = freq(col(rows,'Workplace Setting'));
+  document.getElementById('kpi-setting').textContent = topKey(settings);
+
+  // Demographics
+  const roleF = freq(col(rows,'Professional Role'));
+  makeChart('chartRole','doughnut',Object.keys(roleF),Object.values(roleF));
+  const expF = freq(col(rows,'Years of Experience'));
+  const expOrder = ['0-5','6-10','11-20','20+'];
+  const expLabels = expOrder.filter(k=>expF[k]);
+  makeChart('chartExp','bar',expLabels,expLabels.map(k=>expF[k]||0));
+  const wpF = freq(col(rows,'Workplace Setting'));
+  makeChart('chartWorkplace','doughnut',Object.keys(wpF),Object.values(wpF));
+  const freqF = freq(col(rows,'Frequency of Balance Treatment'));
+  const freqOrder = ['Daily','Weekly','Monthly','Rarely','Never'];
+  const freqLabels = freqOrder.filter(k=>freqF[k]);
+  makeChart('chartFreq','bar',freqLabels,freqLabels.map(k=>freqF[k]||0));
+
+  // Current practice
+  makeBarList('barChallenges', multiFreq(col(rows,'Assessment Challenges')), n, COLORS[0]);
+  makeBarList('barPopulation', multiFreq(col(rows,'Patient Populations')), n, COLORS[1]);
+
+  // Heatmap
+  buildHeatmap(rows);
+
+  // Board config chart
+  const cfgLabels = ['Single-Static','Single-Dynamic','2-Board Weight','2-Board Bilateral','Lateral','Linear','Staggered','Zigzag','Variable'];
+  const cfgFields = ['Rating: Single Board-Static Balance','Rating: Single Board-Dynamic Balance',
+    'Rating: Two Boards-Weight Symmetry','Rating: Two Boards-Bilateral Stance',
+    'Rating: Lateral-Lateral Walking','Rating: Linear-Gait Assessment',
+    'Rating: Staggered-Obstacle Crossing','Rating: Zigzag-Turning Balance',
+    'Rating: Variable Spacing-Step Length'];
+  makeChart('chartCfg','bar',cfgLabels,cfgFields.map(f=>avgRating(rows,f)||0),{yMin:0,yMax:5});
+
+  // Feature groups radar-style bar
+  const fg1 = cfgFields.map(f=>avgRating(rows,f)||0);
+  const fg2 = ['Rating: COP Measurement','Rating: BOS Tracking','Rating: Body Pose & Joint Angles','Rating: Weight Shifting per Board'].map(f=>avgRating(rows,f)||0);
+  const fg3 = ['Rating: Game-Static Balance','Rating: Game-Weight Symmetry','Rating: Game-Gait Training','Rating: Game-Home Care'].map(f=>avgRating(rows,f)||0);
+  const fg4 = ['Rating: Ease of Setup','Rating: Ease of Transport','Rating: Ease of Setup (Home)','Rating: Ease of Setup (Small Scale)'].map(f=>avgRating(rows,f)||0);
+  const avg2 = arr => arr.length ? (arr.reduce((a,b)=>a+parseFloat(b),0)/arr.length).toFixed(2) : 0;
+  makeChart('chartFeatureGroups','bar',
+    ['Board Configurations','Quantitative Measures','Gamified Therapy','System Usability'],
+    [avg2(fg1),avg2(fg2),avg2(fg3),avg2(fg4)],
+    {yMin:0,yMax:5,colors:['#4f8ef7','#4ecdc4','#f5a623','#e84393']});
+
+  // Use cases
+  makeChart('chartAA','bar',
+    ['Initial Assess.','Progress Mon.','Fall Risk','Post-Surgical','Pediatric'],
+    ['Rating: Initial Balance Assessment','Rating: Progress Monitoring','Rating: Fall Risk Screening','Rating: Post-Surgical Evaluation','Rating: Pediatric Balance'].map(f=>avgRating(rows,f)||0),
+    {yMin:0,yMax:5});
+  makeChart('chartTA','bar',
+    ['Weight Shift','Static Balance','Dynamic Balance','Gait Training'],
+    ['Rating: Weight Shifting Exercises','Rating: Static Balance Training','Rating: Dynamic Balance Training','Rating: Gait Training'].map(f=>avgRating(rows,f)||0),
+    {yMin:0,yMax:5,colors:[COLORS[2]]});
+  makeChart('chartCS','bar',
+    ['Hospital','Private Clinic','Home','Community','Academic'],
+    ['Rating: Hospital','Rating: Private Clinic','Rating: Home-Based Therapy','Rating: Community Health Centers','Rating: Academic & Research'].map(f=>avgRating(rows,f)||0),
+    {yMin:0,yMax:5,colors:[COLORS[3]]});
+
+  // Design preferences
+  makeBarList('barFeatures', multiFreq(col(rows,'Desired Additional Features')), n, COLORS[4]);
+  makeBarList('barSafety', multiFreq(col(rows,'Safety Concerns')), n, COLORS[5]);
+  makeBarList('barDisplay', multiFreq(col(rows,'Therapist Display Preferences')), n, COLORS[6]);
+  makeBarList('barWorkflow', multiFreq(col(rows,'Workflow Improvements')), n, COLORS[7]);
+
+  const bsF = freq(col(rows,'Ideal Board Size'));
+  makeChart('chartBoardSize','doughnut',Object.keys(bsF),Object.values(bsF));
+  const nbF = freq(col(rows,'Optimal No. of Boards'));
+  makeChart('chartNumBoards','doughnut',Object.keys(nbF),Object.values(nbF));
+
+  // Implementation
+  const priceF = freq(col(rows,'Acceptable Price Range (INR)'));
+  const priceOrder = ['<50000','50k-1L','1L-2L','2L-3L','>3L'];
+  const priceLabels = priceOrder.filter(k=>priceF[k]);
+  makeChart('chartPrice','bar',priceLabels,priceLabels.map(k=>priceF[k]||0),{colors:[COLORS[1]]});
+  makeBarList('barTraining', multiFreq(col(rows,'Training Needed')), n, COLORS[2]);
+
+  const impl1D = ratingDist(rows,'Rating: Likelihood of Using MOBBO');
+  makeChart('chartImpl1','bar',['1','2','3','4','5'],[1,2,3,4,5].map(k=>impl1D[k]||0),{colors:[COLORS[0]]});
+  const impl2D = ratingDist(rows,'Rating: Ease of Understanding System');
+  makeChart('chartImpl2','bar',['1','2','3','4','5'],[1,2,3,4,5].map(k=>impl2D[k]||0),{colors:[COLORS[2]]});
+  const impl3D = ratingDist(rows,'Rating: Confidence to Operate Independently');
+  makeChart('chartImpl3','bar',['1','2','3','4','5'],[1,2,3,4,5].map(k=>impl3D[k]||0),{colors:[COLORS[3]]});
+
+  // Show dashboard
+  document.getElementById('uploadZone').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+}
+
+// ── CSV PARSING ──────────────────────────────────────────────────
+function handleFile(file) {
+  if(!file) return;
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: results => {
+      // Filter rows that have at least a Name or timestamp
+      const rows = results.data.filter(r =>
+        (r['Name']&&r['Name'].trim()) || (r['Submission Timestamp']&&r['Submission Timestamp'].trim())
+      );
+      if(!rows.length) {
+        alert('No valid data found.\n\nMake sure:\n1. Row 1 of your sheet has the column headers\n2. You exported as CSV from File → Download → CSV');
+        return;
+      }
+      renderDashboard(rows);
+    },
+    error: err => alert('Error reading CSV: ' + err.message)
+  });
+}
+
+document.getElementById('fileInput').addEventListener('change', e => {
+  handleFile(e.target.files[0]);
+});
+
+// Drag & drop
+const uploadCard = document.querySelector('.upload-card');
+uploadCard?.addEventListener('dragover', e => { e.preventDefault(); uploadCard.style.borderColor='#4f8ef7'; });
+uploadCard?.addEventListener('dragleave', () => { uploadCard.style.borderColor=''; });
+uploadCard?.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadCard.style.borderColor='';
+  handleFile(e.dataTransfer.files[0]);
+});
+</script>
+</body>
+</html>
