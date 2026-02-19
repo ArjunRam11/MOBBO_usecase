@@ -874,7 +874,28 @@
     }
   });
 
-  // Human-readable header map for Google Sheets columns
+  // ORDERED list of all fields — defines column order in Google Sheet
+  const FIELD_ORDER = [
+    'respondent_name','role','role_other','experience','workplace','workplace_other','freq',
+    'methods','tech_specify','no_tech_reason',
+    'challenges','challenges_other','population','population_other',
+    'cfg1','cfg2','cfg3','cfg4','cfg5','cfg6','cfg7','cfg8','cfg9',
+    'cfg_scenarios','cfg_other_arrangements','reconfig_importance',
+    'qm1','qm2','qm3','qm4','qm5','qm6','qm7','qm_other',
+    'gm1','gm2','gm3','gm4','gm_other',
+    'us1','us2','us3','us4','us_other',
+    'aa1','aa2','aa3','aa4','aa5','aa_other',
+    'ta1','ta2','ta3','ta4','ta_other',
+    'cs1','cs2','cs3','cs4','cs5','cs_other',
+    'features','features_other','board_size','board_size_other',
+    'num_boards','num_boards_other','display','display_other',
+    'reporting','reporting_other','safety','safety_other',
+    'workflow','workflow_other',
+    'impl1','impl2','impl3','price','training','training_other',
+    'overall_comments','_timestamp'
+  ];
+
+  // Human-readable labels matching the order above
   const FIELD_LABELS = {
     respondent_name: "Name",
     role: "Professional Role", role_other: "Role (Other)",
@@ -890,7 +911,7 @@
     cfg5: "Rating: Lateral-Lateral Walking", cfg6: "Rating: Linear-Gait Assessment",
     cfg7: "Rating: Staggered-Obstacle Crossing", cfg8: "Rating: Zigzag-Turning Balance",
     cfg9: "Rating: Variable Spacing-Step Length",
-    cfg_scenarios: "Clinical Scenarios (high-rated configs)",
+    cfg_scenarios: "Clinical Scenarios (high-rated)",
     cfg_other_arrangements: "Other Board Arrangements",
     reconfig_importance: "Importance of Quick Reconfiguration",
     qm1: "Rating: COP Measurement", qm2: "Rating: BOS Tracking",
@@ -928,16 +949,15 @@
     _timestamp: "Submission Timestamp"
   };
 
-  // Form submit — uses hidden iframe to POST to Google Apps Script (most reliable method)
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyO5AanvYXnPrd2lqQKsBlcLnW3PWD4pQA7rh615yw540axfVU75qUkBhTo4I5ETqMa/exec';
 
-  // Create hidden iframe for submission
+  // Hidden iframe
   const iframe = document.createElement('iframe');
   iframe.name = 'hidden_iframe';
   iframe.style.display = 'none';
   document.body.appendChild(iframe);
 
-  // Create hidden form that posts to iframe
+  // Hidden form
   const hiddenForm = document.createElement('form');
   hiddenForm.method = 'POST';
   hiddenForm.action = GOOGLE_SCRIPT_URL;
@@ -959,39 +979,47 @@
     btn.textContent = 'Submitting…';
     btn.disabled = true;
 
-    // Collect form data
-    const formData = new FormData(document.getElementById('surveyForm'));
+    // Collect ALL form values manually — including unchecked (empty) fields
     const raw = {};
-    for (let [key, value] of formData.entries()) {
-      if (raw[key]) {
-        if (Array.isArray(raw[key])) raw[key].push(value);
-        else raw[key] = [raw[key], value];
-      } else {
-        raw[key] = value;
-      }
+
+    // Initialize all fields as empty first
+    FIELD_ORDER.forEach(key => { raw[key] = ''; });
+
+    // Get all checked radios
+    document.querySelectorAll('#surveyForm input[type="radio"]:checked').forEach(input => {
+      raw[input.name] = input.value;
+    });
+
+    // Get all text inputs and textareas
+    document.querySelectorAll('#surveyForm input[type="text"], #surveyForm textarea').forEach(input => {
+      raw[input.name] = input.value.trim();
+    });
+
+    // Get all checkboxes — combine multiple values with comma
+    const checkboxGroups = {};
+    document.querySelectorAll('#surveyForm input[type="checkbox"]:checked').forEach(input => {
+      if (!checkboxGroups[input.name]) checkboxGroups[input.name] = [];
+      checkboxGroups[input.name].push(input.value);
+    });
+    for (let key in checkboxGroups) {
+      raw[key] = checkboxGroups[key].join(', ');
     }
-    for (let key in raw) {
-      if (Array.isArray(raw[key])) raw[key] = raw[key].join(', ');
-    }
+
+    // Add timestamp
     raw['_timestamp'] = new Date().toISOString();
 
-    // Map to readable labels
-    const labeled = {};
-    for (let key in raw) {
-      labeled[FIELD_LABELS[key] || key] = raw[key];
-    }
-
-    // Clear and populate hidden form
+    // Build hidden form inputs IN ORDER using readable labels
     hiddenForm.innerHTML = '';
-    for (let key in labeled) {
+    FIELD_ORDER.forEach(key => {
+      const label = FIELD_LABELS[key] || key;
       const input = document.createElement('input');
       input.type = 'hidden';
-      input.name = key;
-      input.value = labeled[key];
+      input.name = label;
+      input.value = raw[key] || '';
       hiddenForm.appendChild(input);
-    }
+    });
 
-    // Submit via iframe (bypasses CORS completely)
+    // Submit
     iframe.onload = function() {
       document.getElementById('mainContent').style.display = 'none';
       document.getElementById('thankyou').style.display = 'block';
